@@ -25,3 +25,4 @@
 .DS_Store
 node_modules
 /src/sound/.cache
+/src/autothrottle/target
