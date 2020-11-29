@@ -1,6 +1,5 @@
 #[derive(Debug)]
 pub struct AutoThrottleInput {
-    pub delta_time: std::time::Duration,
     pub throttles: [f64; 2],
     pub airspeed: f64,
     pub altitude: f64,
@@ -27,8 +26,8 @@ pub struct AutoThrottleOutput {
 #[derive(Debug)]
 pub struct AutoThrottle {
     speed_mode_pid: crate::pid::PID,
-    thrust_rate_limiter: crate::rl::RateLimiter,
     last_altitude_lock: f64,
+    last_t: std::time::Instant,
     input: AutoThrottleInput,
     output: AutoThrottleOutput,
 }
@@ -36,12 +35,10 @@ pub struct AutoThrottle {
 impl AutoThrottle {
     pub fn new() -> Self {
         AutoThrottle {
-            // speed_mode_pid: crate::pid::PID::new(10.0, 2.0, 0.3, 50.0, 0.0, 100.0),
             speed_mode_pid: crate::pid::PID::new(10.0, 1.0, 0.0, 10.0, 0.0, 100.0),
-            thrust_rate_limiter: crate::rl::RateLimiter::new(),
             last_altitude_lock: 0.0,
+            last_t: std::time::Instant::now(),
             input: AutoThrottleInput {
-                delta_time: std::time::Duration::from_millis(0),
                 throttles: [0.0, 0.0],
                 airspeed: 0.0,
                 altitude: 0.0,
@@ -60,6 +57,8 @@ impl AutoThrottle {
 
     pub fn update(&mut self) {
         self.engage_logic();
+
+        println!("{:?}", self.speed_mode_pid);
 
         if self.output.active {
             self.active_logic();
@@ -134,12 +133,21 @@ impl AutoThrottle {
         let throttle_control_levels_between_idle_and_mct_gates =
             self.input.throttles.iter().all(|t| *t > 0.0 && *t < 100.0);
 
-        self.output.active = self.output.engaged
+        let new_active = self.output.engaged
             && (throttle_control_levels_between_idle_and_mct_gates || alpha_floor_cond);
+
+        if new_active && !self.output.active {
+            self.last_t = std::time::Instant::now();
+        }
+
+        self.output.active = new_active;
     }
 
     // RukusDM
     fn active_logic(&mut self) {
+        let dt = self.last_t.elapsed().as_secs_f64();
+        self.last_t = std::time::Instant::now();
+
         #[allow(clippy::float_cmp)]
         if self.input.autopilot && self.last_altitude_lock != self.input.altitude_lock {
             self.last_altitude_lock = self.input.altitude_lock;
@@ -155,36 +163,29 @@ impl AutoThrottle {
                 let c = self.speed_mode_pid.update(
                     self.input.airspeed_hold,
                     self.input.airspeed,
-                    self.input.delta_time.as_secs_f64(),
+                    dt,
+                    false,
                 );
-                self.output.commanded = self.thrust_rate_limiter.iterate(
-                    c,
-                    10.0,
-                    10.0,
-                    self.input.delta_time.as_secs_f64(),
-                );
+                self.output.commanded = c;
             }
             Mode::ThrustClimb | Mode::ThrustDescent => {
                 if !self.input.autopilot
                     || (self.input.altitude_lock - self.input.altitude).abs() < 1000.0
                 {
                     self.output.mode = Mode::Speed;
-                    self.speed_mode_pid
-                        .reset(self.input.airspeed_hold, self.input.airspeed);
+                    self.speed_mode_pid.update(
+                        self.input.airspeed_hold,
+                        self.input.airspeed,
+                        dt,
+                        true,
+                    );
                 }
 
-                let c = if self.output.mode == Mode::ThrustClimb {
+                self.output.commanded = if self.output.mode == Mode::ThrustClimb {
                     80.0
                 } else {
                     0.0
                 };
-
-                self.output.commanded = self.thrust_rate_limiter.iterate(
-                    c,
-                    2.5,
-                    2.5,
-                    self.input.delta_time.as_secs_f64(),
-                );
             }
         }
     }
