@@ -3,9 +3,9 @@ pub struct PID {
     kp: f64,
     ki: f64,
     kd: f64,
-    n: f64,
     min: f64,
     max: f64,
+    n: f64,
     y: [f64; 3],
     e: [f64; 3],
 }
@@ -16,15 +16,15 @@ impl PID {
             kp,
             kd,
             ki,
-            n,
             min,
             max,
+            n,
             y: [0.0, 0.0, 0.0],
             e: [0.0, 0.0, 0.0],
         }
     }
 
-    pub(crate) fn update(&mut self, setpoint: f64, value: f64, ts: f64, reset: bool) -> f64 {
+    pub(crate) fn update(&mut self, setpoint: f64, value: f64, dt: f64, reset: bool) -> f64 {
         if reset {
             self.y = [value, value, value];
             let e = setpoint - value;
@@ -32,7 +32,7 @@ impl PID {
         }
 
         // Calculate rollup parameters
-        let k: f64 = 2.0 / ts;
+        let k: f64 = 2.0 / dt;
         let b0 = k.powf(2.0) * self.kp
             + k * self.ki
             + self.ki * self.n
@@ -58,7 +58,10 @@ impl PID {
             + b1 / a0 * self.e[1]
             + b2 / a0 * self.e[2]; // Calculate current output
 
-        clamp(self.y[0], self.min, self.max)
+        // Clamp output
+        self.y[0] = clamp(self.y[0], self.min, self.max);
+
+        self.y[0]
     }
 }
 

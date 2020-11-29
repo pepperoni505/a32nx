@@ -35,7 +35,7 @@ pub struct AutoThrottle {
 impl AutoThrottle {
     pub fn new() -> Self {
         AutoThrottle {
-            speed_mode_pid: crate::pid::PID::new(10.0, 1.0, 0.0, 10.0, 0.0, 100.0),
+            speed_mode_pid: crate::pid::PID::new(10.0, 1.0, 0.3, 10.0, 0.0, 100.0),
             last_altitude_lock: 0.0,
             last_t: std::time::Instant::now(),
             input: AutoThrottleInput {
@@ -198,13 +198,3 @@ impl AutoThrottle {
         &self.output
     }
 }
-
-/*
-fn ramp(setpoint: f64, output: f64, rate: f64) -> f64 {
-    if setpoint > output {
-        (output + rate).min(setpoint)
-    } else {
-        (output - rate).max(setpoint)
-    }
-}
-*/
