@@ -58,8 +58,6 @@ impl AutoThrottle {
     pub fn update(&mut self) {
         self.engage_logic();
 
-        println!("{:?}", self.speed_mode_pid);
-
         if self.output.active {
             self.active_logic();
         } else {

@@ -202,8 +202,6 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
             input.throttles = [t1, t2];
         }
 
-        print!("\x1B[2J\x1B[1;1H");
-
         athr.update();
 
         {
@@ -213,10 +211,6 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
                 t2: output.commanded.min(t2),
             };
             sim.set_data_on_sim_object(SIMCONNECT_OBJECT_ID_USER, &odata)?;
-            println!(
-                "{:?}, engaged: {}, active: {}, {:?}",
-                output.mode, output.engaged, output.active, odata,
-            );
         }
     }
 
