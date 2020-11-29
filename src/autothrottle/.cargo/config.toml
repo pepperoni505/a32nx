@@ -1,5 +1,5 @@
 [target.wasm32-wasi]
 rustflags = ["-Clink-arg=--export-table"]
 
-#[build]
-#target = "wasm32-wasi"
+# [build]
+# target = "wasm32-wasi"

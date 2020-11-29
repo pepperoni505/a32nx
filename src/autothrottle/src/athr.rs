@@ -26,6 +26,7 @@ pub struct AutoThrottleOutput {
 #[derive(Debug)]
 pub struct AutoThrottle {
     speed_mode_pid: crate::pid::PID,
+    thrust_rate_limiter: crate::rl::RateLimiter,
     last_altitude_lock: f64,
     last_t: std::time::Instant,
     input: AutoThrottleInput,
@@ -36,6 +37,7 @@ impl AutoThrottle {
     pub fn new() -> Self {
         AutoThrottle {
             speed_mode_pid: crate::pid::PID::new(10.0, 1.0, 0.3, 10.0, 0.0, 100.0),
+            thrust_rate_limiter: crate::rl::RateLimiter::new(),
             last_altitude_lock: 0.0,
             last_t: std::time::Instant::now(),
             input: AutoThrottleInput {
@@ -158,17 +160,25 @@ impl AutoThrottle {
 
         match self.output.mode {
             Mode::Speed => {
-                let c =
+                self.output.commanded = self.thrust_rate_limiter.iterate(
                     self.speed_mode_pid
-                        .update(self.input.airspeed_hold, self.input.airspeed, dt);
-                self.output.commanded = c;
+                        .update(self.input.airspeed_hold, self.input.airspeed, dt),
+                    10.0,
+                    10.0,
+                    dt,
+                );
             }
             Mode::ThrustClimb | Mode::ThrustDescent => {
-                self.output.commanded = if self.output.mode == Mode::ThrustClimb {
-                    80.0
-                } else {
-                    0.0
-                };
+                self.output.commanded = self.thrust_rate_limiter.iterate(
+                    if self.output.mode == Mode::ThrustClimb {
+                        80.0
+                    } else {
+                        0.0
+                    },
+                    4.0,
+                    4.0,
+                    dt,
+                );
 
                 if !self.input.autopilot
                     || (self.input.altitude_lock - self.input.altitude).abs() < 1000.0
@@ -180,6 +190,7 @@ impl AutoThrottle {
                         dt,
                         self.output.commanded,
                     );
+                    self.thrust_rate_limiter.reset(self.output.commanded);
                 }
             }
         }

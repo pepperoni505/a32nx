@@ -4,6 +4,7 @@ use ::msfs::{
 };
 mod athr;
 mod pid;
+mod rl;
 
 #[data_definition]
 #[derive(Debug)]
@@ -81,6 +82,13 @@ fn dec(t: &mut f64, d: f64) {
         *t = n;
     }
 }
+
+// TARGET, LOW, HIGH
+const DETENTS: &[(f64, f64, f64)] = &[
+    (89.0, 85.5, 92.5),   // CL
+    (95.0, 92.5, 97.5),   // FLEX/MCT
+    (100.0, 97.5, 100.0), // TOGA
+];
 
 #[msfs::standalone_module]
 pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn std::error::Error>> {
@@ -199,7 +207,16 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
         {
             let mut input = athr.input();
 
-            input.throttles = [t1, t2];
+            let map = |t| {
+                for (target, low, high) in DETENTS {
+                    if t >= *low && t <= *high {
+                        return *target;
+                    }
+                }
+                t
+            };
+
+            input.throttles = [map(t1), map(t2)];
         }
 
         athr.update();
