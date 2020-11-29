@@ -160,32 +160,29 @@ impl AutoThrottle {
 
         match self.output.mode {
             Mode::Speed => {
-                let c = self.speed_mode_pid.update(
-                    self.input.airspeed_hold,
-                    self.input.airspeed,
-                    dt,
-                    false,
-                );
+                let c =
+                    self.speed_mode_pid
+                        .update(self.input.airspeed_hold, self.input.airspeed, dt);
                 self.output.commanded = c;
             }
             Mode::ThrustClimb | Mode::ThrustDescent => {
-                if !self.input.autopilot
-                    || (self.input.altitude_lock - self.input.altitude).abs() < 1000.0
-                {
-                    self.output.mode = Mode::Speed;
-                    self.speed_mode_pid.update(
-                        self.input.airspeed_hold,
-                        self.input.airspeed,
-                        dt,
-                        true,
-                    );
-                }
-
                 self.output.commanded = if self.output.mode == Mode::ThrustClimb {
                     80.0
                 } else {
                     0.0
                 };
+
+                if !self.input.autopilot
+                    || (self.input.altitude_lock - self.input.altitude).abs() < 1000.0
+                {
+                    self.output.mode = Mode::Speed;
+                    self.speed_mode_pid.reset(
+                        self.input.airspeed_hold,
+                        self.input.airspeed,
+                        dt,
+                        self.output.commanded,
+                    );
+                }
             }
         }
     }

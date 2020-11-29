@@ -24,13 +24,14 @@ impl PID {
         }
     }
 
-    pub(crate) fn update(&mut self, setpoint: f64, value: f64, dt: f64, reset: bool) -> f64 {
-        if reset {
-            self.y = [value, value, value];
-            let e = setpoint - value;
-            self.e = [e, e, e];
-        }
+    pub(crate) fn reset(&mut self, setpoint: f64, value: f64, dt: f64, iv: f64) {
+        self.y = [iv, iv, iv];
+        let e = setpoint - value;
+        self.e = [e, e, e];
+        self.update(setpoint, value, dt);
+    }
 
+    pub(crate) fn update(&mut self, setpoint: f64, value: f64, dt: f64) -> f64 {
         // Calculate rollup parameters
         let k: f64 = 2.0 / dt;
         let b0 = k.powf(2.0) * self.kp
