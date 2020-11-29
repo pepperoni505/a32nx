@@ -83,13 +83,6 @@ fn dec(t: &mut f64, d: f64) {
     }
 }
 
-// TARGET, LOW, HIGH
-const DETENTS: &[(f64, f64, f64)] = &[
-    (89.0, 85.5, 92.5),   // CL
-    (95.0, 92.5, 97.5),   // FLEX/MCT
-    (100.0, 97.5, 100.0), // TOGA
-];
-
 #[msfs::standalone_module]
 pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn std::error::Error>> {
     let mut sim = module.open_simconnect("ATHR")?;
@@ -208,7 +201,11 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
             let mut input = athr.input();
 
             let map = |t| {
-                for (target, low, high) in DETENTS {
+                for (low, high, target) in &[
+                    (86.6, 90.0, athr::Gates::CL),
+                    (94.0, 96.0, athr::Gates::FLEX_MCT),
+                    (99.5, 100.0, athr::Gates::TOGA),
+                ] {
                     if t >= *low && t <= *high {
                         return *target;
                     }

@@ -23,6 +23,13 @@ pub struct AutoThrottleOutput {
     pub commanded: f64,
 }
 
+pub struct Gates {}
+impl Gates {
+    pub const CL: f64 = 89.0;
+    pub const FLEX_MCT: f64 = 95.0;
+    pub const TOGA: f64 = 100.0;
+}
+
 #[derive(Debug)]
 pub struct AutoThrottle {
     speed_mode_pid: crate::pid::PID,
@@ -129,6 +136,8 @@ impl AutoThrottle {
         } else {
             self.output.engaged
         };
+
+        // TODO: figure out values between gates.
 
         let throttle_control_levels_between_idle_and_mct_gates =
             self.input.throttles.iter().all(|t| *t > 0.0 && *t < 100.0);
