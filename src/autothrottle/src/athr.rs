@@ -5,7 +5,10 @@ pub struct AutoThrottleInput {
     pub altitude: f64,
     pub airspeed_hold: f64,
     pub altitude_lock: f64,
+    pub radio_height: f64,
     pub autopilot: bool,
+    pub pushbutton: bool,
+    pub instinctive_disconnect: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -37,6 +40,7 @@ pub struct AutoThrottle {
     thrust_rate_limiter: crate::rl::RateLimiter,
     last_altitude_lock: f64,
     last_t: std::time::Instant,
+    disabled_by_instinctive_15s: bool,
     input: AutoThrottleInput,
     output: AutoThrottleOutput,
 }
@@ -48,13 +52,17 @@ impl AutoThrottle {
             thrust_rate_limiter: crate::rl::RateLimiter::new(),
             last_altitude_lock: 0.0,
             last_t: std::time::Instant::now(),
+            disabled_by_instinctive_15s: false,
             input: AutoThrottleInput {
                 throttles: [0.0, 0.0],
                 airspeed: 0.0,
                 altitude: 0.0,
                 airspeed_hold: 0.0,
                 altitude_lock: 0.0,
+                radio_height: 0.0,
                 autopilot: false,
+                pushbutton: false,
+                instinctive_disconnect: false,
             },
             output: AutoThrottleOutput {
                 mode: Mode::ThrustDescent,
@@ -66,7 +74,9 @@ impl AutoThrottle {
     }
 
     pub fn update(&mut self) {
-        self.engage_logic();
+        if !self.disabled_by_instinctive_15s {
+            self.engage_logic();
+        }
 
         if self.output.active {
             self.active_logic();
@@ -92,7 +102,7 @@ impl AutoThrottle {
         let athr_specific_cond = true;
 
         // pushbutton is pushed
-        let athr_pb = true;
+        let athr_pb = self.input.pushbutton;
         // >MCT ?? idk
         let toga_cond = false;
 
@@ -102,32 +112,26 @@ impl AutoThrottle {
         let athr_common_or_specific = ap_fd_athr_common_cond || athr_specific_cond;
         let s = athr_common_or_specific && (athr_pb || toga_cond || alpha_floor_cond);
 
-        // if the A/THR function on the opposite FMGC is disengaged and on condition that this FMGC has priority.
-        let athr_opp_cond = false;
-        // Action on the A/THR pushbutton switch, with the A/THR function already engaged.
-        let athr_pb_cond = !athr_pb;
-        // Action on one of the A/THR instinctive disconnect pushbutton switches.
-        let inst_disconnect = false;
-        // ECU/EEC autothrust control feedback i.e. the A/THR being active at level of the FMGCs, one of the two ECUs/EECs indicates that it is not in autothrust control mode.
-        let athr_active_feedback_cond = false;
-        // Go around condition i.e. one throttle control lever is placed in the non active area (> MCT) below 100ft without engagement of the GO AROUND mode on the AP/FD.
-        let ga_cond = self.input.throttles.iter().any(|t| *t > Gates::FLEX_MCT);
-        // AP/FD loss condition i.e. total loss of AP/FD below 100ft with the RETARD mode not engaged.
-        let loss_of_apfd_cond = false;
-        // One engine start on the ground.
-        let engine_ground_cond = false;
-        // Both throttle control levers placed in the IDLE position.
-        let idle_cond = self.input.throttles.iter().all(|t| *t == Gates::IDLE);
-
         let r = !athr_common_or_specific
-            || athr_opp_cond
-            || athr_pb_cond
-            || inst_disconnect
-            || athr_active_feedback_cond
-            || ga_cond
-            || loss_of_apfd_cond
-            || engine_ground_cond
-            || idle_cond;
+            // if the A/THR function on the opposite FMGC is disengaged and on condition that this FMGC has priority.
+            || false
+            // Action on the A/THR pushbutton switch, with the A/THR function already engaged.
+            || self.input.pushbutton && self.output.engaged
+            // Action on one of the A/THR instinctive disconnect pushbuton switches.
+            || self.input.instinctive_disconnect
+            // ECU/EEC autothrust control feedback i.e. the A/THR being active at level of the
+            // FMGCs, one of the two ECUs/EECs indicates that it is not in autothrust control mode.
+            || false
+            // AP/FD loss condition i.e. total loss of AP/FD below 100ft with the RETARD mode not engaged.
+            || false
+            // One engine start on the ground
+            || false
+            // Go around condition i.e. one throttle control lever is placed in the non active
+            // area (> MCT) below 100ft without engagement of the GO AROUND mode on the AP/FD.
+            || (self.input.radio_height < 100.0 && self.input.throttles.iter().any(|t| *t > Gates::FLEX_MCT))
+            // Both throttle control levers placed in the IDLE position.
+            // Both throttle control levers placed in the REVERSE position.
+            || self.input.throttles.iter().all(|t| *t <= Gates::IDLE);
 
         // SR flip-flop
         self.output.engaged = if s {
@@ -138,27 +142,39 @@ impl AutoThrottle {
             self.output.engaged
         };
 
-        // TODO: figure out values between gates.
-        let throttle_control_levels_between_idle_and_mct_gates = self
-            .input
-            .throttles
-            .iter()
-            .all(|t| *t > Gates::IDLE && *t <= Gates::FLEX_MCT);
+        // After engagement, A/THR is active if:
+        // the Alpha floor protection is active whatever the position of the throttle control levers.
 
-        let new_active = self.output.engaged
-            && (throttle_control_levels_between_idle_and_mct_gates || alpha_floor_cond);
+        self.output.active = self.output.engaged
+            && (alpha_floor_cond || {
+                // The two throttle control levers are between IDLE and CL (CL included)
+                let mut all_between_idle_cl = true;
 
-        if new_active && !self.output.active {
-            self.last_t = std::time::Instant::now();
-        }
+                // one throttle control lever is between IDLE and CL (including CL), and the other is between
+                // IDLE and MCT (including MCT) with FLEX TO limit mode not selected
+                let mut one_between_idle_flex_mct = false;
+                let mut one_between_idle_cl = false;
 
-        self.output.active = new_active;
+                for t in &self.input.throttles {
+                    if *t > Gates::IDLE && *t <= Gates::CL {
+                        one_between_idle_cl = true;
+                    } else {
+                        all_between_idle_cl = false;
+                    }
+                    if *t > Gates::IDLE && *t <= Gates::FLEX_MCT {
+                        one_between_idle_flex_mct = true;
+                    }
+                }
+
+                all_between_idle_cl || (one_between_idle_flex_mct && one_between_idle_cl)
+            });
     }
 
     // RukusDM
     fn active_logic(&mut self) {
         let dt = self.last_t.elapsed().as_secs_f64();
         self.last_t = std::time::Instant::now();
+
         // detect pauses
         #[allow(clippy::float_cmp)]
         if dt == 0.0 {

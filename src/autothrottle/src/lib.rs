@@ -21,6 +21,9 @@ struct Flight {
     #[name = "AUTOPILOT ALTITUDE LOCK VAR"]
     #[unit = "feet"]
     altitude_lock: f64,
+    #[name = "RADIO HEIGHT"]
+    #[unit = "feet"]
+    radio_height: f64,
     #[name = "AUTOPILOT MASTER"]
     #[unit = "bool"]
     autopilot: bool,
@@ -188,6 +191,7 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
                     input.altitude = data.altitude;
                     input.airspeed_hold = data.airspeed_hold;
                     input.altitude_lock = data.altitude_lock;
+                    input.radio_height = data.radio_height;
                     input.autopilot = data.autopilot;
                 }
                 _ => unreachable!(),
