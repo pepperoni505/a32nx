@@ -44,8 +44,8 @@ fn map(n: f64, in_min: f64, in_max: f64, out_min: f64, out_max: f64) -> f64 {
 const MAX_THROTTLE: f64 = 100.0;
 const MIN_THROTTLE: f64 = -20.0;
 
-fn map_virtual(n: u32) -> f64 {
-    let n = n as i32 as f64;
+fn map_virtual(n: std::os::raw::c_ulong) -> f64 {
+    let n = n as std::os::raw::c_long as f64;
     if n > 0.0 {
         map(n, 0.0, 16384.0, 0.0, MAX_THROTTLE)
     } else {
@@ -53,9 +53,9 @@ fn map_virtual(n: u32) -> f64 {
     }
 }
 
-fn map_real(n: u32, reverse_toggle: bool, reverse_hold: bool) -> f64 {
+fn map_real(n: std::os::raw::c_ulong, reverse_toggle: bool, reverse_hold: bool) -> f64 {
     const MAX: f64 = 16384.0;
-    let n = n as i32 as f64;
+    let n = n as std::os::raw::c_long as f64;
     if reverse_toggle || reverse_hold {
         map(n, -MAX, MAX, 0.0, MIN_THROTTLE)
     } else {

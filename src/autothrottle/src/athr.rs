@@ -25,6 +25,7 @@ pub struct AutoThrottleOutput {
 
 pub struct Gates {}
 impl Gates {
+    pub const IDLE: f64 = 0.0;
     pub const CL: f64 = 89.0;
     pub const FLEX_MCT: f64 = 95.0;
     pub const TOGA: f64 = 100.0;
@@ -110,13 +111,13 @@ impl AutoThrottle {
         // ECU/EEC autothrust control feedback i.e. the A/THR being active at level of the FMGCs, one of the two ECUs/EECs indicates that it is not in autothrust control mode.
         let athr_active_feedback_cond = false;
         // Go around condition i.e. one throttle control lever is placed in the non active area (> MCT) below 100ft without engagement of the GO AROUND mode on the AP/FD.
-        let ga_cond = false;
+        let ga_cond = self.input.throttles.iter().any(|t| *t > Gates::FLEX_MCT);
         // AP/FD loss condition i.e. total loss of AP/FD below 100ft with the RETARD mode not engaged.
         let loss_of_apfd_cond = false;
         // One engine start on the ground.
         let engine_ground_cond = false;
         // Both throttle control levers placed in the IDLE position.
-        let idle_cond = false;
+        let idle_cond = self.input.throttles.iter().all(|t| *t == Gates::IDLE);
 
         let r = !athr_common_or_specific
             || athr_opp_cond
@@ -138,9 +139,11 @@ impl AutoThrottle {
         };
 
         // TODO: figure out values between gates.
-
-        let throttle_control_levels_between_idle_and_mct_gates =
-            self.input.throttles.iter().all(|t| *t > 0.0 && *t < 100.0);
+        let throttle_control_levels_between_idle_and_mct_gates = self
+            .input
+            .throttles
+            .iter()
+            .all(|t| *t > Gates::IDLE && *t <= Gates::FLEX_MCT);
 
         let new_active = self.output.engaged
             && (throttle_control_levels_between_idle_and_mct_gates || alpha_floor_cond);
@@ -156,6 +159,11 @@ impl AutoThrottle {
     fn active_logic(&mut self) {
         let dt = self.last_t.elapsed().as_secs_f64();
         self.last_t = std::time::Instant::now();
+        // detect pauses
+        #[allow(clippy::float_cmp)]
+        if dt == 0.0 {
+            return;
+        }
 
         #[allow(clippy::float_cmp)]
         if self.input.autopilot && self.last_altitude_lock != self.input.altitude_lock {
