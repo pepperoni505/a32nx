@@ -34,13 +34,20 @@ impl Gates {
     pub const TOGA: f64 = 100.0;
 }
 
+#[derive(Debug, PartialEq)]
+enum Instinctive {
+    Released,
+    Pushed(std::time::Instant),
+    Lockout,
+}
+
 #[derive(Debug)]
 pub struct AutoThrottle {
     speed_mode_pid: crate::pid::PID,
     thrust_rate_limiter: crate::rl::RateLimiter,
     last_altitude_lock: f64,
     last_t: std::time::Instant,
-    disabled_by_instinctive_15s: bool,
+    instinctive: Instinctive,
     input: AutoThrottleInput,
     output: AutoThrottleOutput,
 }
@@ -52,7 +59,7 @@ impl AutoThrottle {
             thrust_rate_limiter: crate::rl::RateLimiter::new(),
             last_altitude_lock: 0.0,
             last_t: std::time::Instant::now(),
-            disabled_by_instinctive_15s: false,
+            instinctive: Instinctive::Released,
             input: AutoThrottleInput {
                 throttles: [0.0, 0.0],
                 airspeed: 0.0,
@@ -74,9 +81,27 @@ impl AutoThrottle {
     }
 
     pub fn update(&mut self) {
-        if !self.disabled_by_instinctive_15s {
-            self.engage_logic();
+        match self.instinctive {
+            Instinctive::Released => {
+                if self.input.instinctive_disconnect {
+                    self.instinctive = Instinctive::Pushed(std::time::Instant::now());
+                }
+            }
+            Instinctive::Pushed(t) => {
+                if self.input.instinctive_disconnect {
+                    if t.elapsed().as_secs_f64() >= 15.0 {
+                        self.instinctive = Instinctive::Lockout;
+                    }
+                } else {
+                    self.instinctive = Instinctive::Released;
+                }
+            }
+            Instinctive::Lockout => {
+                return;
+            }
         }
+
+        self.engage_logic();
 
         if self.output.active {
             self.active_logic();
@@ -101,16 +126,18 @@ impl AutoThrottle {
         // - instinctive disconnect not held for 15s
         let athr_specific_cond = true;
 
-        // pushbutton is pushed
-        let athr_pb = self.input.pushbutton;
-        // >MCT ?? idk
-        let toga_cond = false;
-
         // is in alpha floor zone
         let alpha_floor_cond = false;
 
         let athr_common_or_specific = ap_fd_athr_common_cond || athr_specific_cond;
-        let s = athr_common_or_specific && (athr_pb || toga_cond || alpha_floor_cond);
+        let s = athr_common_or_specific
+            && (
+                // Action on A/THR pushbutton switch
+                self.input.pushbutton
+                // >MCT ?? idk
+                || false
+                || alpha_floor_cond
+            );
 
         let r = !athr_common_or_specific
             // if the A/THR function on the opposite FMGC is disengaged and on condition that this FMGC has priority.
@@ -144,7 +171,6 @@ impl AutoThrottle {
 
         // After engagement, A/THR is active if:
         // the Alpha floor protection is active whatever the position of the throttle control levers.
-
         self.output.active = self.output.engaged
             && (alpha_floor_cond || {
                 // The two throttle control levers are between IDLE and CL (CL included)
