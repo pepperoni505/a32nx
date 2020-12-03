@@ -117,6 +117,8 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
     let thr2incs_id = sim.map_client_event_to_sim_event("THROTTLE2_INCR_SMALL", true)?;
     let thr2decs_id = sim.map_client_event_to_sim_event("THROTTLE2_DECR_SMALL", true)?;
 
+    let athrpb_id = sim.map_client_event_to_sim_event("AUTO_THROTTLE_ARM", true)?;
+
     sim.request_data_on_sim_object::<Flight>(0, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame)?;
 
     let mut reverse_toggle = false;
@@ -181,6 +183,9 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
                 x if x == thr2dec_id => dec(&mut t2, INC_DELTA),
                 x if x == thr2incs_id => inc(&mut t2, INC_DELTA_SMALL),
                 x if x == thr2decs_id => inc(&mut t2, INC_DELTA_SMALL),
+                x if x == athrpb_id => {
+                    athr.input().pushbutton = true;
+                }
                 _ => unreachable!(),
             },
             SimConnectRecv::SimObjectData(data) => match data.id() {
@@ -222,12 +227,22 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
 
         athr.update();
 
+        // clear momentary input
+        athr.input().pushbutton = false;
+
         {
             let output = athr.output();
             let odata = Output {
                 t1: output.commanded.min(t1),
                 t2: output.commanded.min(t2),
             };
+
+            #[cfg(debug_assertions)]
+            println!(
+                "ATHR: mode={:?}, engaged={}, active={}, {:?}",
+                output.mode, output.engaged, output.active, odata
+            );
+
             sim.set_data_on_sim_object(SIMCONNECT_OBJECT_ID_USER, &odata)?;
         }
     }

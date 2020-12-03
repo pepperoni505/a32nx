@@ -143,7 +143,7 @@ impl AutoThrottle {
             // if the A/THR function on the opposite FMGC is disengaged and on condition that this FMGC has priority.
             || false
             // Action on the A/THR pushbutton switch, with the A/THR function already engaged.
-            || self.input.pushbutton && self.output.engaged
+            || (self.input.pushbutton && self.output.engaged)
             // Action on one of the A/THR instinctive disconnect pushbuton switches.
             || self.input.instinctive_disconnect
             // ECU/EEC autothrust control feedback i.e. the A/THR being active at level of the
