@@ -118,6 +118,7 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
     let thr2decs_id = sim.map_client_event_to_sim_event("THROTTLE2_DECR_SMALL", true)?;
 
     let athrpb_id = sim.map_client_event_to_sim_event("AUTO_THROTTLE_ARM", true)?;
+    let inst_id = sim.map_client_event_to_sim_event("A32NX.EVENT.ATHR_INSTINCTIVE_DISCONNECT", true)?;
 
     sim.request_data_on_sim_object::<Flight>(0, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame)?;
 
@@ -185,6 +186,9 @@ pub async fn module(mut module: msfs::StandaloneModule) -> Result<(), Box<dyn st
                 x if x == thr2decs_id => inc(&mut t2, INC_DELTA_SMALL),
                 x if x == athrpb_id => {
                     athr.input().pushbutton = true;
+                }
+                x if x == inst_id => {
+                    athr.input().instinctive_disconnect = event.data() == 1;
                 }
                 _ => unreachable!(),
             },
