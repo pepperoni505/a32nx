@@ -45,6 +45,54 @@ The following values can be configured:
 | DetentFlexMct | Configures the throttle value for FLX/MCT detent |
 | DetentTakeOffGoAround | Configures the throttle value for TOGA detent |
 
+#### Example for Thrustmaster TCA Sidestick Airbus Edition (1)
+
+This example shows how the config looks like when the throttle axis is mapped *without* reverse.
+It uses Mode 1 in the joystick configuration. The throttle all way down means idle.
+
+```
+[Throttle]
+Log = true
+Enabled = true
+ReverseOnAxis = false
+DetentReverseFull = -1.00
+DetentIdle = -1.00
+DetentClimb = 0.66
+DetentFlexMct = 0.88
+DetentTakeOffGoAround = 1.00
+```
+
+#### Example for Thrustmaster TCA Sidestick Airbus Edition (2)
+
+This example shows how the config looks like when the throttle axis is mapped *with* reverse.
+It uses Mode 1 in the joystick configuration. The throttle in the detent means idle, all way down maximum reverse.
+
+```
+[Throttle]
+Log = true
+Enabled = true
+ReverseOnAxis = true
+DetentReverseFull = -1.00
+DetentIdle = -0.77
+DetentClimb = 0.66
+DetentFlexMct = 0.88
+DetentTakeOffGoAround = 1.00
+```
+
+#### Example for Thrustmaster TCA Quadrant Airbus Edition
+
+```
+[Throttle]
+Log = true
+Enabled = true
+ReverseOnAxis = true
+DetentReverseFull = -1.00
+DetentIdle = 0.00
+DetentClimb = 0.66
+DetentFlexMct = 0.88
+DetentTakeOffGoAround = 1.00
+```
+
 ### Known issues
 
 ⚠️ The custom fly-by-wire system is not yet on study level. In order to achieve this level a longer effort is needed. The system is a large improvement over the default implementation and there is no reason to hold it back longer than necessary.
