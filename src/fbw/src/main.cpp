@@ -18,17 +18,14 @@
 
 #include <MSFS/MSFS.h>
 
-#include "main.h"
 #include "FlyByWireInterface.h"
+#include "main.h"
 
 FlyByWireInterface flyByWireInterface;
 
-__attribute__((export_name("FlyByWire_gauge_callback")))
-extern "C" bool FlyByWire_gauge_callback(
-  FsContext ctx,
-  int service_id,
-  void* pData
-) {
+__attribute__((export_name("FlyByWire_gauge_callback"))) extern "C" bool FlyByWire_gauge_callback(FsContext ctx,
+                                                                                                  int service_id,
+                                                                                                  void* pData) {
   // print event type
   switch (service_id) {
     case PANEL_SERVICE_PRE_INSTALL: {

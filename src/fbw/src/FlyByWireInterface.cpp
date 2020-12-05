@@ -20,13 +20,12 @@
 #include <iomanip>
 #include <iostream>
 
-#include "SimConnectData.h"
 #include "FlyByWireInterface.h"
+#include "SimConnectData.h"
 
 using namespace std;
 
-bool FlyByWireInterface::connect()
-{
+bool FlyByWireInterface::connect() {
   // register L variables for the sidestick
   sideStickPositionX = register_named_variable("A32NX_SIDESTICK_POSITION_X");
   sideStickPositionY = register_named_variable("A32NX_SIDESTICK_POSITION_Y");
@@ -41,14 +40,10 @@ bool FlyByWireInterface::connect()
   flightDataRecorder.initialize();
 
   // connect to sim connect
-  return simConnectInterface.connect(
-    isThrottleHandlingEnabled,
-    idleThrottleInput
-  );
+  return simConnectInterface.connect(isThrottleHandlingEnabled, idleThrottleInput);
 }
 
-void FlyByWireInterface::disconnect()
-{
+void FlyByWireInterface::disconnect() {
   // disconnect from sim connect
   simConnectInterface.disconnect();
 
@@ -59,9 +54,7 @@ void FlyByWireInterface::disconnect()
   flightDataRecorder.terminate();
 }
 
-bool FlyByWireInterface::update(
-  double sampleTime
-) {
+bool FlyByWireInterface::update(double sampleTime) {
   bool result = true;
 
   // get data & inputs
@@ -74,8 +67,7 @@ bool FlyByWireInterface::update(
   result &= writeModelOuputDataToSim();
 
   // get throttle data and process it
-  if (isThrottleHandlingEnabled)
-  {
+  if (isThrottleHandlingEnabled) {
     result &= processThrottles();
   }
 
@@ -86,20 +78,15 @@ bool FlyByWireInterface::update(
   return result;
 }
 
-bool FlyByWireInterface::getModelInputDataFromSim(
-  double sampleTime
-)
-{
+bool FlyByWireInterface::getModelInputDataFromSim(double sampleTime) {
   // request data
-  if (!simConnectInterface.requestData())
-  {
+  if (!simConnectInterface.requestData()) {
     cout << "WASM: Request data failed!" << endl;
     return false;
   }
 
   // read data
-  if (!simConnectInterface.readData())
-  {
+  if (!simConnectInterface.readData()) {
     cout << "WASM: Read data failed!" << endl;
     return false;
   }
@@ -110,8 +97,7 @@ bool FlyByWireInterface::getModelInputDataFromSim(
 
   // detect pause
   bool isInPause = false;
-  if ((simData.simulationTime == previousSimulationTime) || (simData.simulationTime < 0.2))
-  {
+  if ((simData.simulationTime == previousSimulationTime) || (simData.simulationTime < 0.2)) {
     isInPause = true;
   }
   previousSimulationTime = simData.simulationTime;
@@ -161,48 +147,32 @@ bool FlyByWireInterface::getModelInputDataFromSim(
   return true;
 }
 
-bool FlyByWireInterface::writeModelOuputDataToSim()
-{
+bool FlyByWireInterface::writeModelOuputDataToSim() {
   // write side stick positions
-  set_named_variable_value(
-    sideStickPositionX,
-    static_cast<FLOAT64>(model.FlyByWire_Y.out.sim.input.delta_xi_pos)
-  );
-  set_named_variable_value(
-    sideStickPositionY,
-    static_cast<FLOAT64>(model.FlyByWire_Y.out.sim.input.delta_eta_pos)
-  );
+  set_named_variable_value(sideStickPositionX, static_cast<FLOAT64>(model.FlyByWire_Y.out.sim.input.delta_xi_pos));
+  set_named_variable_value(sideStickPositionY, static_cast<FLOAT64>(model.FlyByWire_Y.out.sim.input.delta_eta_pos));
 
   // when tracking mode is on do not write anything
-  if (model.FlyByWire_Y.out.sim.data_computed.tracking_mode_on)
-  {
+  if (model.FlyByWire_Y.out.sim.data_computed.tracking_mode_on) {
     return true;
   }
 
   // object to write with trim
-  SimOutput output = {
-    model.FlyByWire_Y.out.sim.raw.output.eta_pos,
-    model.FlyByWire_Y.out.sim.raw.output.xi_pos,
-    model.FlyByWire_Y.out.sim.raw.output.zeta_pos
-  };
+  SimOutput output = {model.FlyByWire_Y.out.sim.raw.output.eta_pos, model.FlyByWire_Y.out.sim.raw.output.xi_pos,
+                      model.FlyByWire_Y.out.sim.raw.output.zeta_pos};
 
   // send data via sim connect
-  if (!simConnectInterface.sendData(output))
-  {
+  if (!simConnectInterface.sendData(output)) {
     cout << "WASM: Write data failed!" << endl;
     return false;
   }
 
-  if (model.FlyByWire_Y.out.sim.raw.output.eta_trim_deg_should_write)
-  {
+  if (model.FlyByWire_Y.out.sim.raw.output.eta_trim_deg_should_write) {
     // object to write without trim
-    SimOutputEtaTrim output = {
-      model.FlyByWire_Y.out.sim.raw.output.eta_trim_deg
-    };
+    SimOutputEtaTrim output = {model.FlyByWire_Y.out.sim.raw.output.eta_trim_deg};
 
     // send data via sim connect
-    if (!simConnectInterface.sendData(output))
-    {
+    if (!simConnectInterface.sendData(output)) {
       cout << "WASM: Write data failed!" << endl;
       return false;
     }
@@ -211,12 +181,10 @@ bool FlyByWireInterface::writeModelOuputDataToSim()
   return true;
 }
 
-void FlyByWireInterface::initializeThrottles()
-{
+void FlyByWireInterface::initializeThrottles() {
   // read configuration
   INIReader configuration(THROTTLE_CONFIGURATION_FILEPATH);
-  if (configuration.ParseError() < 0)
-  {
+  if (configuration.ParseError() < 0) {
     // file does not exist yet -> store the default configuration in a file
     ofstream configFile;
     configFile.open(THROTTLE_CONFIGURATION_FILEPATH);
@@ -238,8 +206,7 @@ void FlyByWireInterface::initializeThrottles()
   useReverseOnAxis = configuration.GetBoolean("Throttle", "ReverseOnAxis", false);
   // read mapping configuration
   vector<pair<double, double>> mappingTable;
-  if (useReverseOnAxis)
-  {
+  if (useReverseOnAxis) {
     mappingTable.emplace_back(configuration.GetReal("Throttle", "DetendReverseFull", -1.00), -20.00);
   }
   mappingTable.emplace_back(configuration.GetReal("Throttle", "DetentIdle", useReverseOnAxis ? 0.00 : -1.00), 0.00);
@@ -248,12 +215,9 @@ void FlyByWireInterface::initializeThrottles()
   mappingTable.emplace_back(configuration.GetReal("Throttle", "DetentTakeOffGoAround", 1.00), 100.00);
 
   // remember idle throttle setting
-  if (useReverseOnAxis)
-  {
+  if (useReverseOnAxis) {
     idleThrottleInput = mappingTable[1].first;
-  }
-  else
-  {
+  } else {
     idleThrottleInput = mappingTable[0].first;
   }
 
@@ -262,8 +226,7 @@ void FlyByWireInterface::initializeThrottles()
   cout << "WASM: Throttle Configuration : Enabled               = " << isThrottleHandlingEnabled << endl;
   cout << "WASM: Throttle Configuration : ReverseOnAxis         = " << useReverseOnAxis << endl;
   int index = 0;
-  if (useReverseOnAxis)
-  {
+  if (useReverseOnAxis) {
     cout << "WASM: Throttle Configuration : DetentReverseFull     = " << mappingTable[index++].first << endl;
   }
   cout << "WASM: Throttle Configuration : DetentIdle            = " << mappingTable[index++].first << endl;
@@ -280,25 +243,19 @@ bool FlyByWireInterface::processThrottles() {
   auto simInputThrottles = simConnectInterface.getSimInputThrottles();
 
   // process the data (lut)
-  SimOutputThrottles simOutputThrottles = {
-      throttleLookupTable.get(simInputThrottles.throttles[0]),
-      throttleLookupTable.get(simInputThrottles.throttles[1])
-  };
+  SimOutputThrottles simOutputThrottles = {throttleLookupTable.get(simInputThrottles.throttles[0]),
+                                           throttleLookupTable.get(simInputThrottles.throttles[1])};
 
   // detect reverse situation
-  if (!useReverseOnAxis && simConnectInterface.getIsReverseToggleActive())
-  {
+  if (!useReverseOnAxis && simConnectInterface.getIsReverseToggleActive()) {
     simOutputThrottles.throttleLeverPosition_1 = -10.0 * (simInputThrottles.throttles[0] + 1);
     simOutputThrottles.throttleLeverPosition_2 = -10.0 * (simInputThrottles.throttles[1] + 1);
   }
 
   // if enabled, print values
-  if (isThrottleLoggingEnabled)
-  {
-    if (lastUseReverseOnAxis != useReverseOnAxis
-        || lastThrottleInput_1 != simInputThrottles.throttles[0]
-        || lastThrottleInput_2 != simInputThrottles.throttles[1])
-    {
+  if (isThrottleLoggingEnabled) {
+    if (lastUseReverseOnAxis != useReverseOnAxis || lastThrottleInput_1 != simInputThrottles.throttles[0] ||
+        lastThrottleInput_2 != simInputThrottles.throttles[1]) {
       // print values
       cout << fixed << setprecision(2) << "WASM";
       cout << " : Throttle 1: " << setw(5) << simInputThrottles.throttles[0];
@@ -315,19 +272,15 @@ bool FlyByWireInterface::processThrottles() {
   }
 
   // write output to sim
-  if (!simConnectInterface.sendData(simOutputThrottles))
-  {
+  if (!simConnectInterface.sendData(simOutputThrottles)) {
     cout << "WASM: Write data failed!" << endl;
     return false;
   }
 
   // determine if autothrust armed event needs to be triggered
-  if (simConnectInterface.getIsAutothrottlesArmed()
-    && simOutputThrottles.throttleLeverPosition_1 < 1
-    && simOutputThrottles.throttleLeverPosition_2 < 1)
-  {
-    if (!simConnectInterface.sendAutoThrustArmEvent())
-    {
+  if (simConnectInterface.getIsAutothrottlesArmed() && simOutputThrottles.throttleLeverPosition_1 < 1 &&
+      simOutputThrottles.throttleLeverPosition_2 < 1) {
+    if (!simConnectInterface.sendAutoThrustArmEvent()) {
       cout << "WASM: Write data failed!" << endl;
       return false;
     }

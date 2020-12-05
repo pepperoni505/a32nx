@@ -18,23 +18,20 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
 #include <MSFS/Legacy/gauges.h>
 #include <SimConnect.h>
+#include <string>
+#include <vector>
 
 #include "SimConnectData.h"
 
 class SimConnectInterface {
-public:
+ public:
   SimConnectInterface() = default;
 
   ~SimConnectInterface() = default;
 
-  bool connect(
-    bool isThrottleHandlingEnabled,
-    double idleThrottleInput
-  );
+  bool connect(bool isThrottleHandlingEnabled, double idleThrottleInput);
 
   void disconnect();
 
@@ -44,17 +41,11 @@ public:
 
   bool readData();
 
-  bool sendData(
-    SimOutput output
-  );
+  bool sendData(SimOutput output);
 
-  bool sendData(
-    SimOutputEtaTrim output
-  );
+  bool sendData(SimOutputEtaTrim output);
 
-  bool sendData(
-    SimOutputThrottles output
-  );
+  bool sendData(SimOutputThrottles output);
 
   bool sendAutoThrustArmEvent();
 
@@ -67,7 +58,7 @@ public:
   bool getIsReverseToggleActive();
   bool getIsAutothrottlesArmed();
 
-private:
+ private:
   bool isConnected = false;
   HANDLE hSimConnect = 0;
 
@@ -81,52 +72,31 @@ private:
 
   bool prepareSimDataSimConnectDataDefinitions();
 
-  bool prepareSimInputSimConnectDataDefinitions(
-    bool isThrottleHandlingEnabled
-  );
+  bool prepareSimInputSimConnectDataDefinitions(bool isThrottleHandlingEnabled);
 
   bool prepareSimOutputSimConnectDataDefinitions();
 
-  void simConnectProcessDispatchMessage(
-    SIMCONNECT_RECV* pData,
-    DWORD* cbData
-  );
+  void simConnectProcessDispatchMessage(SIMCONNECT_RECV* pData, DWORD* cbData);
 
-  void simConnectProcessEvent(
-    const SIMCONNECT_RECV* pData
-  );
+  void simConnectProcessEvent(const SIMCONNECT_RECV* pData);
 
-  void simConnectProcessSimObjectDataByType(
-    const SIMCONNECT_RECV* pData
-  );
+  void simConnectProcessSimObjectDataByType(const SIMCONNECT_RECV* pData);
 
-  bool sendData(
-    SIMCONNECT_DATA_DEFINITION_ID id,
-    DWORD size,
-    void* data
-  );
+  bool sendData(SIMCONNECT_DATA_DEFINITION_ID id, DWORD size, void* data);
 
-  static bool addDataDefinition(
-    const HANDLE connectionHandle,
-    const SIMCONNECT_DATA_DEFINITION_ID id,
-    const SIMCONNECT_DATATYPE dataType,
-    const std::string& dataName,
-    const std::string& dataUnit
-  );
+  static bool addDataDefinition(const HANDLE connectionHandle,
+                                const SIMCONNECT_DATA_DEFINITION_ID id,
+                                const SIMCONNECT_DATATYPE dataType,
+                                const std::string& dataName,
+                                const std::string& dataUnit);
 
-  static bool addInputDataDefinition(
-    const HANDLE connectionHandle,
-    const SIMCONNECT_DATA_DEFINITION_ID groupId,
-    const SIMCONNECT_CLIENT_EVENT_ID eventId,
-    const std::string& eventName,
-    const bool maskEvent
-  );
+  static bool addInputDataDefinition(const HANDLE connectionHandle,
+                                     const SIMCONNECT_DATA_DEFINITION_ID groupId,
+                                     const SIMCONNECT_CLIENT_EVENT_ID eventId,
+                                     const std::string& eventName,
+                                     const bool maskEvent);
 
-  static bool isSimConnectDataTypeStruct(
-    SIMCONNECT_DATATYPE dataType
-  );
+  static bool isSimConnectDataTypeStruct(SIMCONNECT_DATATYPE dataType);
 
-  static std::string getSimConnectExceptionString(
-    SIMCONNECT_EXCEPTION exception
-  );
+  static std::string getSimConnectExceptionString(SIMCONNECT_EXCEPTION exception);
 };

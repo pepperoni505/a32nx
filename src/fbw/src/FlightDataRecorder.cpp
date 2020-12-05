@@ -46,10 +46,8 @@ void FlightDataRecorder::initialize() {
 
   // read basic configuration
   isEnabled = configuration.GetBoolean("FlightDataRecorder", "Enabled", true);
-  maximumFileCount =
-      configuration.GetInteger("FlightDataRecorder", "MaximumNumberOfFiles", 5);
-  maximumSampleCounter = configuration.GetInteger(
-      "FlightDataRecorder", "MaximumNumberOfEntriesPerFile", 54000);
+  maximumFileCount = configuration.GetInteger("FlightDataRecorder", "MaximumNumberOfFiles", 5);
+  maximumSampleCounter = configuration.GetInteger("FlightDataRecorder", "MaximumNumberOfEntriesPerFile", 54000);
 
   // print configuration
   cout << "WASM: Flight Data Recorder Configuration : Enabled                  "
@@ -73,8 +71,7 @@ void FlightDataRecorder::update(FlyByWireModelClass* model) {
   manageFlightDataRecorderFiles();
 
   // write data to file
-  fileStream->write(reinterpret_cast<char*>(&model->FlyByWire_Y.out),
-                    sizeof(model->FlyByWire_Y.out));
+  fileStream->write(reinterpret_cast<char*>(&model->FlyByWire_Y.out), sizeof(model->FlyByWire_Y.out));
 }
 
 void FlightDataRecorder::terminate() {
@@ -139,8 +136,7 @@ void FlightDataRecorder::cleanUpFlightDataRecorderFiles() {
     string filename = directoryEntry->d_name;
 
     // check if file has right extension
-    if (filename.find(extension, (filename.length() - extension.length())) !=
-        string::npos) {
+    if (filename.find(extension, (filename.length() - extension.length())) != string::npos) {
       files.push_back(filename);
     }
   }

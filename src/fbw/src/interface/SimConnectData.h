@@ -21,8 +21,7 @@
 #include <MSFS/Legacy/gauges.h>
 #include <SimConnect.h>
 
-    struct SimData
-{
+struct SimData {
   double nz_g;
   double Theta_deg;
   double Phi_deg;
@@ -52,30 +51,25 @@
   double simulationTime;
 };
 
-struct SimInput
-{
+struct SimInput {
   double inputs[3];
 };
 
-struct SimInputThrottles
-{
+struct SimInputThrottles {
   double throttles[2];
 };
 
-struct SimOutput
-{
+struct SimOutput {
   double eta;
   double xi;
   double zeta;
 };
 
-struct SimOutputEtaTrim
-{
+struct SimOutputEtaTrim {
   double eta_trim_deg;
 };
 
-struct SimOutputThrottles
-{
+struct SimOutputThrottles {
   double throttleLeverPosition_1;
   double throttleLeverPosition_2;
 };

@@ -21,23 +21,20 @@
 #include <MSFS/Legacy/gauges.h>
 #include <SimConnect.h>
 
-#include "SimConnectInterface.h"
+#include "FlightDataRecorder.h"
 #include "FlyByWire.h"
 #include "InterpolatingLookupTable.h"
-#include "FlightDataRecorder.h"
+#include "SimConnectInterface.h"
 
-class FlyByWireInterface
-{
-public:
+class FlyByWireInterface {
+ public:
   bool connect();
 
   void disconnect();
 
-  bool update(
-      double sampleTime
-  );
+  bool update(double sampleTime);
 
-private:
+ private:
   const std::string THROTTLE_CONFIGURATION_FILEPATH = "\\work\\ThrottleConfiguration.ini";
 
   bool isThrottleLoggingEnabled = false;
@@ -60,9 +57,7 @@ private:
   ID sideStickPositionX;
   ID sideStickPositionY;
 
-  bool getModelInputDataFromSim(
-    double sampleTime
-  );
+  bool getModelInputDataFromSim(double sampleTime);
 
   bool writeModelOuputDataToSim();
 

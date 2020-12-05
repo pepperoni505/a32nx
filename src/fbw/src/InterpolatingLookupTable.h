@@ -21,18 +21,13 @@
 #include <utility>
 #include <vector>
 
-class InterpolatingLookupTable
-{
-public:
-  void initialize(
-      std::vector<std::pair<double, double>> mapping,
-      double minimum,
-      double maximum);
+class InterpolatingLookupTable {
+ public:
+  void initialize(std::vector<std::pair<double, double>> mapping, double minimum, double maximum);
 
-  double get(
-      double value);
+  double get(double value);
 
-private:
+ private:
   std::vector<std::pair<double, double>> mappingTable;
   double mappingMinimum;
   double mappingMaximum;
