@@ -16,10 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-#include <filesystem>
-#include <fstream>
 #include <INIReader.h>
+#include <iomanip>
+#include <iostream>
 
 #include "SimConnectData.h"
 #include "FlyByWireInterface.h"
@@ -38,6 +37,9 @@ bool FlyByWireInterface::connect()
   // initialize model
   model.initialize();
 
+  // initialize flight data recorder
+  flightDataRecorder.initialize();
+
   // connect to sim connect
   return simConnectInterface.connect(
     isThrottleHandlingEnabled,
@@ -52,6 +54,9 @@ void FlyByWireInterface::disconnect()
 
   // terminate model
   model.terminate();
+
+  // terminate flight data recorder
+  flightDataRecorder.terminate();
 }
 
 bool FlyByWireInterface::update(
@@ -73,6 +78,9 @@ bool FlyByWireInterface::update(
   {
     result &= processThrottles();
   }
+
+  // update flight data recorder
+  flightDataRecorder.update(&model);
 
   // return result
   return result;
@@ -213,6 +221,7 @@ void FlyByWireInterface::initializeThrottles()
     ofstream configFile;
     configFile.open(THROTTLE_CONFIGURATION_FILEPATH);
     configFile << "[Throttle]" << endl;
+    configFile << "Log = true" << endl;
     configFile << "Enabled = true" << endl;
     configFile << "ReverseOnAxis = false" << endl;
     configFile << "DetentReverseFull = -1.00" << endl;
@@ -224,6 +233,7 @@ void FlyByWireInterface::initializeThrottles()
   }
 
   // read basic configuration
+  isThrottleLoggingEnabled = configuration.GetBoolean("Throttle", "Log", true);
   isThrottleHandlingEnabled = configuration.GetBoolean("Throttle", "Enabled", true);
   useReverseOnAxis = configuration.GetBoolean("Throttle", "ReverseOnAxis", false);
   // read mapping configuration
@@ -248,6 +258,7 @@ void FlyByWireInterface::initializeThrottles()
   }
 
   // print config
+  cout << "WASM: Throttle Configuration : Log                   = " << isThrottleLoggingEnabled << endl;
   cout << "WASM: Throttle Configuration : Enabled               = " << isThrottleHandlingEnabled << endl;
   cout << "WASM: Throttle Configuration : ReverseOnAxis         = " << useReverseOnAxis << endl;
   int index = 0;
@@ -279,6 +290,28 @@ bool FlyByWireInterface::processThrottles() {
   {
     simOutputThrottles.throttleLeverPosition_1 = -10.0 * (simInputThrottles.throttles[0] + 1);
     simOutputThrottles.throttleLeverPosition_2 = -10.0 * (simInputThrottles.throttles[1] + 1);
+  }
+
+  // if enabled, print values
+  if (isThrottleLoggingEnabled)
+  {
+    if (lastUseReverseOnAxis != useReverseOnAxis
+        || lastThrottleInput_1 != simInputThrottles.throttles[0]
+        || lastThrottleInput_2 != simInputThrottles.throttles[1])
+    {
+      // print values
+      cout << fixed << setprecision(2) << "WASM";
+      cout << " : Throttle 1: " << setw(5) << simInputThrottles.throttles[0];
+      cout << " -> " << setw(6) << simOutputThrottles.throttleLeverPosition_1;
+      cout << " ; Throttle 2: " << setw(5) << simInputThrottles.throttles[1];
+      cout << " -> " << setw(6) << simOutputThrottles.throttleLeverPosition_2;
+      cout << endl;
+
+      // store values for next iteration
+      lastUseReverseOnAxis = useReverseOnAxis;
+      lastThrottleInput_1 = simInputThrottles.throttles[0];
+      lastThrottleInput_2 = simInputThrottles.throttles[1];
+    }
   }
 
   // write output to sim
