@@ -23,7 +23,7 @@
 
 using namespace std;
 
-bool SimConnectInterface::connect(bool isThrottleHandlingEnabled, double idleThrottleInput) {
+bool SimConnectInterface::connect(bool isThrottleHandlingEnabled, double idleThrottleInput, bool useReverseOnAxis) {
   // info message
   cout << "WASM: Connecting..." << endl;
 
@@ -34,8 +34,13 @@ bool SimConnectInterface::connect(bool isThrottleHandlingEnabled, double idleThr
     // we are now connected
     isConnected = true;
     cout << "WASM: Connected" << endl;
+    // store is reverse is mapped to axis
+    this->useReverseOnAxis = useReverseOnAxis;
     // store idle level
     this->idleThrottleInput = idleThrottleInput;
+    // initialize inputs with idle input
+    simInputThrottles.throttles[0] = idleThrottleInput;
+    simInputThrottles.throttles[1] = idleThrottleInput;
     // add data to definition
     bool prepareResult = prepareSimDataSimConnectDataDefinitions();
     prepareResult &= prepareSimInputSimConnectDataDefinitions(isThrottleHandlingEnabled);
@@ -357,69 +362,202 @@ void SimConnectInterface::simConnectProcessEvent(const SIMCONNECT_RECV* pData) {
       simInputThrottles.throttles[1] = 100.0;
       break;
     case 11:
+      isReverseToggleActive = false;
       simInputThrottles.throttles[0] = idleThrottleInput;
       simInputThrottles.throttles[1] = idleThrottleInput;
       break;
     case 12:
-      simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.1);
-      simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.1);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[0] == -1.0 || simInputThrottles.throttles[1] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.1);
+        simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.1);
+      } else {
+        simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.1);
+        simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.1);
+      }
       break;
     case 13:
-      simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.1);
-      simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.1);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[0] == -1.0 || simInputThrottles.throttles[1] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.1);
+        simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.1);
+      } else {
+        simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.1);
+        simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.1);
+      }
       break;
     case 14:
-      simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.05);
-      simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.05);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[0] == -1.0 || simInputThrottles.throttles[1] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.05);
+        simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.05);
+      } else {
+        simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.05);
+        simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.05);
+      }
       break;
     case 15:
-      simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.05);
-      simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.05);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[0] == -1.0 || simInputThrottles.throttles[1] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.05);
+        simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.05);
+      } else {
+        simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.05);
+        simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.05);
+      }
       break;
 
     case 16:
       simInputThrottles.throttles[0] = 100.0;
       break;
     case 17:
+      isReverseToggleActive = false;
       simInputThrottles.throttles[0] = idleThrottleInput;
       break;
     case 18:
-      simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.1);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[0] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.1);
+      } else {
+        simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.1);
+      }
       break;
     case 19:
-      simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.1);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[0] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.1);
+      } else {
+        simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.1);
+      }
       break;
     case 20:
-      simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.05);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[0] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.05);
+      } else {
+        simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.05);
+      }
       break;
     case 21:
-      simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.05);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[0] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[0] = min(1.0, simInputThrottles.throttles[0] + 0.05);
+      } else {
+        simInputThrottles.throttles[0] = max(-1.0, simInputThrottles.throttles[0] - 0.05);
+      }
       break;
 
     case 22:
       simInputThrottles.throttles[1] = 100.0;
       break;
     case 23:
+      isReverseToggleActive = false;
       simInputThrottles.throttles[1] = idleThrottleInput;
       break;
     case 24:
-      simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[0] + 0.1);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[1] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.1);
+      } else {
+        simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.1);
+      }
       break;
     case 25:
-      simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[0] - 0.1);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[1] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.1);
+      } else {
+        simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.1);
+      }
       break;
     case 26:
-      simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[0] + 0.05);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[1] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.05);
+      } else {
+        simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.05);
+      }
       break;
     case 27:
-      simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[0] - 0.05);
+      if (!useReverseOnAxis) {
+        // check if we have reached the minimum -> toggle reverse
+        if (simInputThrottles.throttles[1] == -1.0) {
+          isReverseToggleActive = !isReverseToggleActive;
+        }
+      }
+      if (isReverseToggleActive) {
+        simInputThrottles.throttles[1] = min(1.0, simInputThrottles.throttles[1] + 0.05);
+      } else {
+        simInputThrottles.throttles[1] = max(-1.0, simInputThrottles.throttles[1] - 0.05);
+      }
       break;
 
     case 28:
       isReverseToggleActive = !isReverseToggleActive;
+      simInputThrottles.throttles[0] = idleThrottleInput;
+      simInputThrottles.throttles[1] = idleThrottleInput;
       break;
     case 29:
       isReverseToggleActive = static_cast<bool>(event->dwData);
+      if (!isReverseToggleActive) {
+        simInputThrottles.throttles[0] = idleThrottleInput;
+        simInputThrottles.throttles[1] = idleThrottleInput;
+      }
       break;
 
     default:

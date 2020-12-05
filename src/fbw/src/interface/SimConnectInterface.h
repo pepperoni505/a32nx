@@ -31,7 +31,7 @@ class SimConnectInterface {
 
   ~SimConnectInterface() = default;
 
-  bool connect(bool isThrottleHandlingEnabled, double idleThrottleInput);
+  bool connect(bool isThrottleHandlingEnabled, double idleThrottleInput, bool useReverseOnAxis);
 
   void disconnect();
 
@@ -66,6 +66,7 @@ class SimConnectInterface {
   SimInput simInput = {};
 
   SimInputThrottles simInputThrottles = {};
+  bool useReverseOnAxis = false;
   bool isReverseToggleActive = false;
   bool isAutothrustArmed = false;
   double idleThrottleInput = -1.0;

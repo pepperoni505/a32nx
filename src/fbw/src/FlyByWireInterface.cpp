@@ -53,7 +53,7 @@ bool FlyByWireInterface::connect() {
   flightDataRecorder.initialize();
 
   // connect to sim connect
-  return simConnectInterface.connect(isThrottleHandlingEnabled, idleThrottleInput);
+  return simConnectInterface.connect(isThrottleHandlingEnabled, idleThrottleInput, useReverseOnAxis);
 }
 
 void FlyByWireInterface::disconnect() {
