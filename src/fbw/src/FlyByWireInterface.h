@@ -54,8 +54,19 @@ class FlyByWireInterface {
   FlyByWireModelClass model;
   InterpolatingLookupTable throttleLookupTable;
 
-  ID sideStickPositionX;
-  ID sideStickPositionY;
+  ID idSideStickPositionX;
+  ID idSideStickPositionY;
+  ID idSideStickLeftPositionX;
+  ID idSideStickLeftPositionY;
+  ID idSideStickRightPositionX;
+  ID idSideStickRightPositionY;
+
+  ID idRudderPositionOverrideOn;
+  ID idRudderPosition;
+
+  ID idThrottlePositionOverrideOn;
+  ID idThrottlePosition_1;
+  ID idThrottlePosition_2;
 
   bool getModelInputDataFromSim(double sampleTime);
 

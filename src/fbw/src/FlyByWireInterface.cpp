@@ -27,8 +27,21 @@ using namespace std;
 
 bool FlyByWireInterface::connect() {
   // register L variables for the sidestick
-  sideStickPositionX = register_named_variable("A32NX_SIDESTICK_POSITION_X");
-  sideStickPositionY = register_named_variable("A32NX_SIDESTICK_POSITION_Y");
+  idSideStickPositionX = register_named_variable("A32NX_SIDESTICK_POSITION_X");
+  idSideStickPositionY = register_named_variable("A32NX_SIDESTICK_POSITION_Y");
+  // register L variables for the sidestick on the left side
+  idSideStickLeftPositionX = register_named_variable("A32NX_SIDESTICK_LEFT_POSITION_X");
+  idSideStickLeftPositionY = register_named_variable("A32NX_SIDESTICK_LEFT_POSITION_Y");
+  // register L variables for the sidestick on the right side
+  idSideStickRightPositionX = register_named_variable("A32NX_SIDESTICK_RIGHT_POSITION_X");
+  idSideStickRightPositionY = register_named_variable("A32NX_SIDESTICK_RIGHT_POSITION_Y");
+  // register L variables for the rudder handling
+  idRudderPositionOverrideOn = register_named_variable("A32NX_RUDDER_POSITION_OVERRIDE_ON");
+  idRudderPosition = register_named_variable("A32NX_RUDDER_POSITION");
+  // register L variables for the throttle handling
+  idThrottlePositionOverrideOn = register_named_variable("A32NX_THROTTLE_POSITION_OVERRIDE_ON");
+  idThrottlePosition_1 = register_named_variable("A32NX_THROTTLE_POSITION_1");
+  idThrottlePosition_2 = register_named_variable("A32NX_THROTTLE_POSITION_2");
 
   // initialize throttle system
   initializeThrottles();
@@ -138,20 +151,45 @@ bool FlyByWireInterface::getModelInputDataFromSim(double sampleTime) {
   model.FlyByWire_U.in.data.slew_on = simData.slew_on;
   model.FlyByWire_U.in.data.pause_on = isInPause;
 
+  // process the sidestick handling
+  // use the values read from input as sidestick left
+  double sideStickLeftPositionX = -1.0 * simInput.inputs[1];
+  double sideStickLeftPositionY = -1.0 * simInput.inputs[0];
+  // read the values from sidestick right
+  double sideStickRightPositionX = get_named_variable_value(idSideStickRightPositionX);
+  double sideStickRightPositionY = get_named_variable_value(idSideStickRightPositionY);
+  // add them together and clamp them
+  double sideStickPositionX = sideStickLeftPositionX + sideStickRightPositionX;
+  sideStickPositionX = min(1.0, sideStickPositionX);
+  sideStickPositionX = max(-1.0, sideStickPositionX);
+  double sideStickPositionY = sideStickLeftPositionY + sideStickRightPositionY;
+  sideStickPositionY = min(1.0, sideStickPositionY);
+  sideStickPositionY = max(-1.0, sideStickPositionY);
+  // write them as sidestick position
+  set_named_variable_value(idSideStickLeftPositionX, sideStickLeftPositionX);
+  set_named_variable_value(idSideStickLeftPositionY, sideStickLeftPositionY);
+  set_named_variable_value(idSideStickPositionX, sideStickPositionX);
+  set_named_variable_value(idSideStickPositionY, sideStickPositionY);
+
+  // rudder handling
+  double rudderPositionOverrideOn = get_named_variable_value(idRudderPositionOverrideOn);
+  double rudderPosition = simInput.inputs[2];
+  if (rudderPositionOverrideOn == 0) {
+    set_named_variable_value(idRudderPosition, rudderPosition);
+  } else {
+    rudderPosition = get_named_variable_value(idRudderPosition);
+  }
+
   // fill inputs into model
-  model.FlyByWire_U.in.input.delta_eta_pos = simInput.inputs[0];
-  model.FlyByWire_U.in.input.delta_xi_pos = simInput.inputs[1];
-  model.FlyByWire_U.in.input.delta_zeta_pos = simInput.inputs[2];
+  model.FlyByWire_U.in.input.delta_eta_pos = -1.0 * sideStickPositionY;
+  model.FlyByWire_U.in.input.delta_xi_pos = -1.0 * sideStickPositionX;
+  model.FlyByWire_U.in.input.delta_zeta_pos = rudderPosition;
 
   // success
   return true;
 }
 
 bool FlyByWireInterface::writeModelOuputDataToSim() {
-  // write side stick positions
-  set_named_variable_value(sideStickPositionX, static_cast<FLOAT64>(model.FlyByWire_Y.out.sim.input.delta_xi_pos));
-  set_named_variable_value(sideStickPositionY, static_cast<FLOAT64>(model.FlyByWire_Y.out.sim.input.delta_eta_pos));
-
   // when tracking mode is on do not write anything
   if (model.FlyByWire_Y.out.sim.data_computed.tracking_mode_on) {
     return true;
@@ -250,6 +288,15 @@ bool FlyByWireInterface::processThrottles() {
   if (!useReverseOnAxis && simConnectInterface.getIsReverseToggleActive()) {
     simOutputThrottles.throttleLeverPosition_1 = -10.0 * (simInputThrottles.throttles[0] + 1);
     simOutputThrottles.throttleLeverPosition_2 = -10.0 * (simInputThrottles.throttles[1] + 1);
+  }
+
+  // detect if override is active
+  if (get_named_variable_value(idThrottlePositionOverrideOn) == 0) {
+    set_named_variable_value(idThrottlePosition_1, simOutputThrottles.throttleLeverPosition_1);
+    set_named_variable_value(idThrottlePosition_2, simOutputThrottles.throttleLeverPosition_2);
+  } else {
+    simOutputThrottles.throttleLeverPosition_1 = get_named_variable_value(idThrottlePosition_1);
+    simOutputThrottles.throttleLeverPosition_2 = get_named_variable_value(idThrottlePosition_2);
   }
 
   // if enabled, print values
