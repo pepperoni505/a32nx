@@ -20,103 +20,123 @@ import React from 'react';
 import { Toggle } from '../Components/Form/Toggle';
 import { Select, SelectGroup, SelectItem } from '../Components/Form/Select';
 import { Slider } from '../Components/Form/Slider';
-import { useSimVarSyncedPersistentProperty } from '../../Common/persistence';
+import { useSimVarSyncedPersistentProperty, usePersistentProperty } from '../../Common/persistence';
 
-const PlaneSettings: React.FC = () => (
-    <div className="bg-gray-800 opacity-40 rounded-xl px-6 py-4 shadow-lg">
-        <h1 className="text-xl font-medium text-white mb-3">Realism</h1>
+const PlaneSettings: React.FC = () => {
+    const [adirsAlignTime, setAdirsAlignTime] = usePersistentProperty('CONFIG_ALIGN_TIME', 'REAL');
+    // const [dmcSelfTestTime, setDmcSelfTestTime] = usePersistentProperty('CONFIG_SELF_TEST_TIME');
+    const [atisSource, setAtisSource] = usePersistentProperty('CONFIG_ATIS_SRC', 'FAA');
+    const [metarSource, setMetarSource] = usePersistentProperty('CONFIG_METAR_SRC', 'MSFS');
+    const [tafSource, setTafSource] = usePersistentProperty('CONFIG_TAF_SRC', 'NOAA');
+    const [paxSigns, setPaxSigns] = usePersistentProperty('CONFIG_USING_PORTABLE_DEVICES', '0');
+    const [defaultBaro, setDefaultBaro] = usePersistentProperty('CONFIG_INIT_BARO_UNIT', 'IN HG');
 
-        <div className="divide-y divide-gray-700 flex flex-col">
-            <div className="mb-3.5 flex flex-row justify-between items-center">
-                <span className="text-lg text-gray-300">ADIRS Align Time</span>
-                <SelectGroup>
-                    <SelectItem>Instant</SelectItem>
-                    <SelectItem>Fast</SelectItem>
-                    <SelectItem selected>Real</SelectItem>
-                </SelectGroup>
-            </div>
-            <div className="mb-4 pt-3 flex flex-row justify-between items-center">
-                <span className="text-lg text-gray-300">DMC self-test</span>
-                <SelectGroup>
-                    <SelectItem>Instant</SelectItem>
-                    <SelectItem>Fast</SelectItem>
-                    <SelectItem selected>Real</SelectItem>
-                </SelectGroup>
-            </div>
-        </div>
+    return (
+        <div className="bg-gray-800 rounded-xl px-6 py-4 shadow-lg">
+            <h1 className="text-xl font-medium text-white mb-3">Realism</h1>
 
-        <h1 className="text-xl text-white font-medium mt-4 mb-3">ATSU/AOC</h1>
+            <div className="divide-y divide-gray-700 flex flex-col">
+                <div className="mb-3.5 flex flex-row justify-between items-center">
+                    <span className="text-lg text-gray-300">ADIRS Align Time</span>
+                    <SelectGroup>
+                        <SelectItem selected={adirsAlignTime === 'INSTANT'} onSelect={() => setAdirsAlignTime('INSTANT')}>Instant</SelectItem>
+                        <SelectItem selected={adirsAlignTime === 'FAST'} onSelect={() => setAdirsAlignTime('FAST')}>Fast</SelectItem>
+                        <SelectItem selected={adirsAlignTime === 'REAL'} onSelect={() => setAdirsAlignTime('REAL')}>Real</SelectItem>
+                    </SelectGroup>
+                </div>
+                <div className="mb-4 pt-3 opacity-40 flex flex-row justify-between items-center">
+                    <span className="text-lg text-gray-300">DMC self-test</span>
+                    <SelectGroup>
+                        <SelectItem>Instant</SelectItem>
+                        <SelectItem>Fast</SelectItem>
+                        <SelectItem selected>Real</SelectItem>
+                    </SelectGroup>
+                </div>
+            </div>
 
-        <div className="divide-y divide-gray-700 flex flex-col">
-            <div className="mb-3.5 flex flex-row justify-between items-center">
-                <span className="text-lg text-gray-300">ATIS Source</span>
-                <SelectGroup>
-                    <SelectItem>FAA (US)</SelectItem>
-                    <SelectItem>PilotEdge</SelectItem>
-                    <SelectItem>IVAO</SelectItem>
-                    <SelectItem selected>VATSIM</SelectItem>
-                </SelectGroup>
+            <h1 className="text-xl text-white font-medium mt-4 mb-3">ATSU/AOC</h1>
+
+            <div className="divide-y divide-gray-700 flex flex-col">
+                <div className="mb-3.5 flex flex-row justify-between items-center">
+                    <span className="text-lg text-gray-300">ATIS Source</span>
+                    <SelectGroup>
+                        <SelectItem selected={atisSource === 'FAA'} onSelect={() => setAtisSource('FAA')}>FAA (US)</SelectItem>
+                        <SelectItem selected={atisSource === 'PILOTEDGE'} onSelect={() => setAtisSource('PILOTEDGE')}>PilotEdge</SelectItem>
+                        <SelectItem selected={atisSource === 'IVAO'} onSelect={() => setAtisSource('IVAO')}>IVAO</SelectItem>
+                        <SelectItem selected={atisSource === 'VATSIM'} onSelect={() => setAtisSource('VATSIM')}>VATSIM</SelectItem>
+                    </SelectGroup>
+                </div>
+                <div className="mb-3.5 pt-3 flex flex-row justify-between items-center">
+                    <span className="text-lg text-gray-300">METAR Source</span>
+                    <SelectGroup>
+                        <SelectItem selected={metarSource === 'MSFS'} onSelect={() => setMetarSource('MSFS')}>MeteoBlue</SelectItem>
+                        <SelectItem selected={metarSource === 'IVAO'} onSelect={() => setMetarSource('IVAO')}>IVAO</SelectItem>
+                        <SelectItem selected={metarSource === 'PILOTEDGE'} onSelect={() => setMetarSource('PILOTEDGE')}>PilotEdge</SelectItem>
+                        <SelectItem selected={metarSource === 'VATSIM'} onSelect={() => setMetarSource('VATSIM')}>VATSIM</SelectItem>
+                    </SelectGroup>
+                </div>
+                <div className="pt-3 flex flex-row justify-between items-center">
+                    <span className="text-lg text-gray-300">TAF Source</span>
+                    <SelectGroup>
+                        <SelectItem selected={tafSource === 'IVAO'} onSelect={() => setTafSource('IVAO')}>IVAO</SelectItem>
+                        <SelectItem selected={tafSource === 'NOAA'} onSelect={() => setTafSource('NOAA')}>NOAA</SelectItem>
+                    </SelectGroup>
+                </div>
             </div>
-            <div className="mb-3.5 pt-3 flex flex-row justify-between items-center">
-                <span className="text-lg text-gray-300">METAR Source</span>
-                <SelectGroup>
-                    <SelectItem>MeteoBlue</SelectItem>
-                    <SelectItem>IVAO</SelectItem>
-                    <SelectItem>PilotEdge</SelectItem>
-                    <SelectItem selected>VATSIM</SelectItem>
-                </SelectGroup>
-            </div>
+
+            <h1 className="text-xl text-white font-medium mt-5 mb-3">CIDS</h1>
+
             <div className="pt-3 flex flex-row justify-between items-center">
-                <span className="text-lg text-gray-300">TAF Source</span>
+                <span className="text-lg text-gray-300">PAX Signs</span>
                 <SelectGroup>
-                    <SelectItem>IVAO</SelectItem>
-                    <SelectItem selected>NOAA</SelectItem>
+                    <SelectItem selected={paxSigns === '0'} onSelect={() => setPaxSigns('0')}>No Smoking</SelectItem>
+                    <SelectItem selected={paxSigns === '1'} onSelect={() => setPaxSigns('1')}>No Port Devc</SelectItem>
                 </SelectGroup>
             </div>
+
+            <h1 className="text-xl text-white font-medium mt-5 mb-3">FMGC</h1>
+
+            <div className="divide-y divide-gray-700 flex flex-col">
+                <div className="mb-3.5 opacity-40 flex flex-row justify-between items-center">
+                    <span className="text-lg text-gray-300">Thrust Reduction Altitude</span>
+                    <div className="flex flex-row">
+                        <Select>1500 ft</Select>
+                    </div>
+                </div>
+                <div className="mb-3.5 opacity-40 pt-3 flex flex-row justify-between items-center">
+                    <span className="text-lg text-gray-300">Acceleration Altitude </span>
+                    <div className="flex flex-row">
+                        <Select>1500 ft</Select>
+                    </div>
+                </div>
+                <div className="mb-3.5 opacity-40 pt-3 flex flex-row justify-between items-center">
+                    <span className="text-lg text-gray-300">Transition Level</span>
+                    <div className="flex flex-row">
+                        <Select>FL180</Select>
+                    </div>
+                </div>
+
+                <div className="w-full pt-2 flex flex-row justify-between">
+                    <div className="pt-2 pr-4 flex-grow flex flex-row justify-between items-center">
+                        <span className="text-lg text-gray-300">Default Baro</span>
+                        <SelectGroup>
+                            <SelectItem selected={defaultBaro === 'AUTO'} onSelect={() => setDefaultBaro('AUTO')}>Auto</SelectItem>
+                            <SelectItem selected={defaultBaro === 'IN HG'} onSelect={() => setDefaultBaro('IN HG')}>in Hg</SelectItem>
+                            <SelectItem selected={defaultBaro === 'HPA'} onSelect={() => setDefaultBaro('HPA')}>hPa</SelectItem>
+                        </SelectGroup>
+                    </div>
+                    <div className="pt-2 pl-4 flex-grow flex flex-row justify-between items-center">
+                        <span className="text-lg text-gray-300">Weight Unit</span>
+                        <SelectGroup>
+                            <SelectItem selected>Kg</SelectItem>
+                            <SelectItem>lbs</SelectItem>
+                        </SelectGroup>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <h1 className="text-xl text-white font-medium mt-5 mb-3">FMGC</h1>
-
-        <div className="divide-y divide-gray-700 flex flex-col">
-            <div className="mb-3.5 flex flex-row justify-between items-center">
-                <span className="text-lg text-gray-300">Thrust Reduction Altitude</span>
-                <div className="flex flex-row">
-                    <Select>1500 ft</Select>
-                </div>
-            </div>
-            <div className="mb-3.5 pt-3 flex flex-row justify-between items-center">
-                <span className="text-lg text-gray-300">Acceleration Altitude </span>
-                <div className="flex flex-row">
-                    <Select>1500 ft</Select>
-                </div>
-            </div>
-            <div className="mb-3.5 pt-3 flex flex-row justify-between items-center">
-                <span className="text-lg text-gray-300">Transition Level</span>
-                <div className="flex flex-row">
-                    <Select>FL180</Select>
-                </div>
-            </div>
-
-            <div className="w-full pt-2 flex flex-row justify-between">
-                <div className="pt-2 pr-4 flex-grow flex flex-row justify-between items-center">
-                    <span className="text-lg text-gray-300">Default Baro</span>
-                    <SelectGroup>
-                        <SelectItem selected>Auto</SelectItem>
-                        <SelectItem>in Hg</SelectItem>
-                        <SelectItem>hPa</SelectItem>
-                    </SelectGroup>
-                </div>
-                <div className="pt-2 pl-4 flex-grow flex flex-row justify-between items-center">
-                    <span className="text-lg text-gray-300">Weight Unit</span>
-                    <SelectGroup>
-                        <SelectItem selected>Kg</SelectItem>
-                        <SelectItem>lbs</SelectItem>
-                    </SelectGroup>
-                </div>
-            </div>
-        </div>
-    </div>
-);
+    );
+};
 
 const SoundSettings: React.FC = () => {
     const [ptuAudible, setPtuAudible] = useSimVarSyncedPersistentProperty('L:A32NX_SOUND_PTU_AUDIBLE_COCKPIT', 'Bool', 'SOUND_PTU_AUDIBLE_COCKPIT');
@@ -177,11 +197,8 @@ const Settings: React.FC = () => (
     <div className="w-full h-full flex flex-col">
         <div className="flex-grow m-6 rounded-xl flex flex-row">
             <div className="w-1/2 pr-3">
-                <div className="opacity-40">
-                    <h1 className="text-2xl text-white mb-4">Plane Settings</h1>
-
-                    <PlaneSettings />
-                </div>
+                <h1 className="text-2xl text-white mb-4">Plane Settings</h1>
+                <PlaneSettings />
             </div>
             <div className="w-1/2 pl-3">
                 <h1 className="text-2xl text-white mb-4">Audio Settings</h1>

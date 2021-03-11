@@ -56,8 +56,8 @@ export class NXDataStore {
  *
  * Note: The value of the persistent property does not automatically refresh for now
  */
-export const usePersistentProperty = (propertyName: string): [string, (string) => void] => {
-    const [propertyValue, rawPropertySetter] = useState(() => NXDataStore.get(propertyName));
+export const usePersistentProperty = (propertyName: string, defaultValue?: string): [string, (string) => void] => {
+    const [propertyValue, rawPropertySetter] = useState(() => NXDataStore.get(propertyName, defaultValue));
 
     const propertySetter = (value: string) => {
         NXDataStore.set(propertyName, value);
